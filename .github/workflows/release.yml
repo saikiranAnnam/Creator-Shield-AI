@@ -46,14 +46,14 @@ jobs:
         run: tar -C frontend -czvf frontend-dist.tgz --exclude=node_modules .
 
       - name: Upload backend JAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: creatorshield-backend-jar
           path: target/*.jar
           if-no-files-found: error
 
       - name: Upload frontend bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: creatorshield-frontend-dist
           path: frontend-dist.tgz
