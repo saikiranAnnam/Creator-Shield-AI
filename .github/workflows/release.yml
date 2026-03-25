@@ -1,0 +1,60 @@
+# Release pipeline: build deployable artifacts when you push a version tag (e.g. v0.1.0).
+# Extend the final step with your host (Fly.io, AWS, Kubernetes, etc.).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Package Spring Boot JAR
+        run: mvn -B -ntp package -DskipTests
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Next.js
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api/v1
+
+      - name: Archive frontend for deployment
+        run: tar -C frontend -czvf frontend-dist.tgz --exclude=node_modules .
+
+      - name: Upload backend JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: creatorshield-backend-jar
+          path: target/*.jar
+          if-no-files-found: error
+
+      - name: Upload frontend bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: creatorshield-frontend-dist
+          path: frontend-dist.tgz
+          if-no-files-found: error
